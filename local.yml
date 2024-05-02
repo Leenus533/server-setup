@@ -1,0 +1,17 @@
+- hosts: localhost
+  pre_tasks:
+    - name: Update package manager cahce
+      become: true
+      package:
+        update_cache: true
+
+  tasks:
+    - name: Install tmux, fzf, zoxide
+      become_user: "{{ become_user_id }}"
+      package:
+        name:
+          - tmux
+          - fzf
+          - zoxide
+          - neovim
+      ignore_errors: true
