@@ -7,7 +7,7 @@
 
   tasks:
     - name: Install tmux, fzf, zoxide
-      become_user: "{{ become_user_id }}"
+      become_user: "{{ ansible_user_id }}"
       package:
         name:
           - tmux
