@@ -19,6 +19,11 @@
           - zsh
       ignore_errors: true
 
+    - name: Change default shell to zsh for current user
+      ansible.builtin.command:
+        cmd: chsh -s /bin/zsh {{ ansible_user_id }}
+      become: yes
+
     - name: Check that the ~/.oh-my-zsh directory exists
       ansible.builtin.stat:
         path: "{{ '/home/' + ansible_user_id + '/.oh-my-zsh' }}"
