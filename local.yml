@@ -9,13 +9,12 @@
         update_cache: true
 
   tasks:
-    - name: Install tmux, fzf, zoxide, neovim
+    - name: Install tmux, fzf, neovim
       become: true
       package:
         name:
           - tmux
           - fzf
-          - zoxide
           - neovim
           - zsh
       ignore_errors: true

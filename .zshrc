@@ -102,4 +102,3 @@ PROMPT='%F{202}%M%{$fg_bold[red]%}➜ %{$fg_bold[green]%}%p %{$fg[cyan]%}%c %{$f
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 alias sd='cd ~ && cd $(find * -type d | fzf)'
 bindkey -s '^f' 'tmux-sessionizer\n'
-eval "$(zoxide init --cmd cd zsh)"
