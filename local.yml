@@ -1,4 +1,7 @@
 - hosts: localhost
+  vars:
+    oh_my_zsh_dir: "{{ '/home/' + ansible_user_id + '/.oh-my-zsh' if ansible_distribution != 'MacOSX' else '/Users/' + ansible_user_id + '/.oh-my-zsh' }}"
+    zsh_plugins_dir: "{{ oh_my_zsh_dir + '/custom/plugins' }}"
   pre_tasks:
     - name: Update package manager cahce
       become: true
@@ -6,12 +9,50 @@
         update_cache: true
 
   tasks:
-    - name: Install tmux, fzf, zoxide
-      become_user: "{{ ansible_user_id }}"
+    - name: Install tmux, fzf, zoxide, neovim
+      become: true
       package:
         name:
           - tmux
           - fzf
           - zoxide
           - neovim
+          - zsh
       ignore_errors: true
+
+    - name: Check that the ~/.oh-my-zsh directory exists
+      ansible.builtin.stat:
+        path: "{{ '/home/' + ansible_user_id + '/.oh-my-zsh' }}"
+      register: oh_my_stats
+
+    - name: Install Oh-My-Zsh
+      ansible.builtin.shell:
+        cmd: '{{ ''curl -L https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh > ~/.oh-my-installer && chmod +x ~/.oh-my-installer && ~/.oh-my-installer'' if ansible_distribution != ''MacOSX'' else ''sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"'' }}'
+      become_user: "{{ ansible_user_id }}"
+      when: oh_my_stats.stat.exists == False
+
+    - name: Install zsh-autosuggestions
+      ansible.builtin.git:
+        repo: "https://github.com/zsh-users/zsh-autosuggestions.git"
+        dest: "{{ oh_my_zsh_dir + '/custom/plugins' }}/zsh-autosuggestions"
+      become: yes
+      become_user: "{{ ansible_user_id }}"
+
+    - name: Clone zsh-fzf-history-search repository
+      ansible.builtin.git:
+        repo: "https://github.com/joshskidmore/zsh-fzf-history-search.git"
+        dest: "{{ zsh_plugins_dir }}/zsh-fzf-history-search"
+      become: yes
+      become_user: "{{ ansible_user_id }}"
+
+    - name: Remove existing .zshrc from home directory (if it exists)
+      file:
+        path: "{{ ansible_env.HOME }}/.zshrc"
+        state: absent
+
+    - name: Create symlink for .zshrc
+      file:
+        src: "{{ ansible_env.HOME }}/server-setup/.zshrc"
+        dest: "{{ ansible_env.HOME }}/.zshrc"
+        state: link
+        force: yes
