@@ -3,13 +3,13 @@
     oh_my_zsh_dir: "{{ '/home/' + ansible_user_id + '/.oh-my-zsh' if ansible_distribution != 'MacOSX' else '/Users/' + ansible_user_id + '/.oh-my-zsh' }}"
     zsh_plugins_dir: "{{ oh_my_zsh_dir + '/custom/plugins' }}"
   pre_tasks:
-    - name: Update package manager cache
+    - name: Update package manager cahce
       become: true
       package:
         update_cache: true
 
   tasks:
-    - name: Install tmux, fzf, neovim, and zsh
+    - name: Install tmux, fzf, neovim
       become: true
       package:
         name:
@@ -22,32 +22,32 @@
     - name: Change default shell to zsh for current user
       ansible.builtin.command:
         cmd: chsh -s /bin/zsh {{ ansible_user_id }}
-      become: true
+      become: yes
       tags: zsh
 
     - name: Check that the ~/.oh-my-zsh directory exists
       ansible.builtin.stat:
-        path: "{{ oh_my_zsh_dir }}"
+        path: "{{ '/home/' + ansible_user_id + '/.oh-my-zsh' }}"
       register: oh_my_stats
 
     - name: Install Oh-My-Zsh
       ansible.builtin.shell:
-        cmd: '{{ "curl -L https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh > ~/.oh-my-installer && chmod +x ~/.oh-my-installer && ~/.oh-my-installer" if ansible_distribution != "MacOSX" else "sh -c \"$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)\"" }}'
+        cmd: '{{ ''curl -L https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh > ~/.oh-my-installer && chmod +x ~/.oh-my-installer && ~/.oh-my-installer'' if ansible_distribution != ''MacOSX'' else ''sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"'' }}'
       become_user: "{{ ansible_user_id }}"
       when: oh_my_stats.stat.exists == False
 
     - name: Install zsh-autosuggestions
       ansible.builtin.git:
         repo: "https://github.com/zsh-users/zsh-autosuggestions.git"
-        dest: "{{ zsh_plugins_dir }}/zsh-autosuggestions"
-      become: true
+        dest: "{{ oh_my_zsh_dir + '/custom/plugins' }}/zsh-autosuggestions"
+      become: yes
       become_user: "{{ ansible_user_id }}"
 
     - name: Clone zsh-fzf-history-search repository
       ansible.builtin.git:
         repo: "https://github.com/joshskidmore/zsh-fzf-history-search.git"
         dest: "{{ zsh_plugins_dir }}/zsh-fzf-history-search"
-      become: true
+      become: yes
       become_user: "{{ ansible_user_id }}"
 
     - name: Remove existing .zshrc from home directory (if it exists)
@@ -61,57 +61,3 @@
         dest: "{{ ansible_env.HOME }}/.zshrc"
         state: link
         force: yes
-
-    - name: Install Docker prerequisites
-      become: true
-      package:
-        name:
-          - ca-certificates
-          - curl
-        state: present
-        update_cache: yes
-
-    - name: Remove any existing Docker repository
-      become: true
-      lineinfile:
-        path: /etc/apt/sources.list
-        regexp: "^deb [arch=amd64] https://download.docker.com/linux/debian"
-        state: absent
-
-    - name: Remove any existing Docker repository from sources.list.d
-      become: true
-      file:
-        path: "/etc/apt/sources.list.d/docker.list"
-        state: absent
-
-    - name: Create directory for the Docker apt keyring
-      become: true
-      file:
-        path: /etc/apt/keyrings
-        state: directory
-        mode: "0755"
-
-    - name: Add Docker's official GPG key
-      become: true
-      get_url:
-        url: https://download.docker.com/linux/debian/gpg
-        dest: /etc/apt/keyrings/docker.asc
-        mode: "0644"
-
-    - name: Add Docker repository
-      become: true
-      apt_repository:
-        repo: "deb [arch={{ ansible_architecture }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian {{ ansible_distribution_release | lower }} stable"
-        state: present
-        filename: docker
-
-    - name: Install Docker packages
-      become: true
-      package:
-        name:
-          - docker-ce
-          - docker-ce-cli
-          - containerd.io
-          - docker-buildx-plugin
-          - docker-compose-plugin
-      ignore_errors: true
